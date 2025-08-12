@@ -1,0 +1,78 @@
+{
+    "model_name": "Random Forest",
+    "features": [
+        "Age",
+        "Avg Monthly GB Download",
+        "Avg Monthly Long Distance Charges",
+        "CLTV",
+        "Contract",
+        "Internet Service",
+        "Internet Type",
+        "Monthly Charge",
+        "Multiple Lines",
+        "Phone Service",
+        "Population",
+        "Satisfaction Score",
+        "Streaming Movies",
+        "Streaming Music",
+        "Streaming TV",
+        "Tenure in Months",
+        "Total Charges",
+        "Total Extra Data Charges",
+        "Total Long Distance Charges",
+        "Total Revenue",
+        "Unlimited Data"
+    ],
+    "metrics": {
+        "accuracy": 0.8178913738019169,
+        "precision": 0.7033747779751333,
+        "recall": 0.5336927223719676,
+        "f1": 0.6068965517241379,
+        "roc_auc": 0.8337946935991947,
+        "best_params": {
+            "classifier__max_depth": 10,
+            "classifier__min_samples_split": 5,
+            "classifier__n_estimators": 200
+        }
+    },
+    "preprocessing": {
+        "numeric_columns": [
+            "Age",
+            "Avg Monthly GB Download",
+            "Avg Monthly Long Distance Charges",
+            "CLTV",
+            "Internet Service",
+            "Monthly Charge",
+            "Multiple Lines",
+            "Phone Service",
+            "Population",
+            "Satisfaction Score",
+            "Streaming Movies",
+            "Streaming Music",
+            "Streaming TV",
+            "Tenure in Months",
+            "Total Charges",
+            "Total Extra Data Charges",
+            "Total Long Distance Charges",
+            "Total Revenue",
+            "Unlimited Data"
+        ],
+        "categorical_columns": [
+            "Contract",
+            "Internet Type"
+        ],
+        "expected_categories": {
+            "Contract": [
+                "Two Year",
+                "Month-to-Month",
+                "One Year"
+            ],
+            "Internet Type": [
+                "Fiber Optic",
+                NaN,
+                "DSL",
+                "Cable"
+            ]
+        }
+    }
+}
