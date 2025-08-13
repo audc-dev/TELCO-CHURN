@@ -1,0 +1,61 @@
+# k8s/services.yaml
+#
+# Kubernetes services for internal and external communication
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow-service
+  namespace: churn-prediction
+spec:
+  selector:
+    app: mlflow
+  ports:
+  - port: 5000
+    targetPort: 5000
+  type: ClusterIP
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-service
+  namespace: churn-prediction
+spec:
+  selector:
+    app: fastapi
+  ports:
+  - port: 8000
+    targetPort: 8000
+  type: ClusterIP
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-service
+  namespace: churn-prediction
+spec:
+  selector:
+    app: flask
+  ports:
+  - port: 5000
+    targetPort: 5000
+  type: ClusterIP
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: streamlit-service
+  namespace: churn-prediction
+spec:
+  selector:
+    app: streamlit
+  ports:
+  - port: 8501
+    targetPort: 8501
+  type: ClusterIP

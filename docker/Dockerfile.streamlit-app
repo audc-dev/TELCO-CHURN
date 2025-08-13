@@ -1,0 +1,41 @@
+# ============================================== 
+
+# docker/Dockerfile.streamlit-app
+#
+# Streamlit dashboard for interactive data exploration and model insights
+# Includes real-time monitoring and visualization capabilities
+
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash app_user
+
+# Copy requirements
+COPY requirements-streamlit.txt ./
+RUN pip install --no-cache-dir -r requirements-streamlit.txt
+
+# Copy Streamlit application
+COPY src/streamlit_app/ ./
+COPY model/ ./model/
+
+# Set ownership
+RUN chown -R app_user:app_user /app
+USER app_user
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8501/ || exit 1
+
+EXPOSE 8501
+
+# Run Streamlit
+CMD ["streamlit", "run", "dashboard.py", "--server.port=8501", "--server.address=0.0.0.0"]

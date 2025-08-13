@@ -1,0 +1,81 @@
+# k8s/cronjob.yaml
+#
+# Scheduled jobs for monitoring and maintenance
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: drift-monitoring-job
+  namespace: churn-prediction
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: drift-monitor
+            image: ghcr.io/your-repo/telco-churn-app/monitoring:latest
+            command:
+            - python
+            - scripts/drift_monitoring.py
+            env:
+            - name: MLFLOW_TRACKING_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: churn-app-config
+                  key: MLFLOW_TRACKING_URI
+            volumeMounts:
+            - name: model-storage
+              mountPath: /app/model
+              readOnly: true
+            - name: reports-storage
+              mountPath: /app/reports
+          volumes:
+          - name: model-storage
+            persistentVolumeClaim:
+              claimName: model-pvc
+          - name: reports-storage
+            persistentVolumeClaim:
+              claimName: reports-pvc
+          restartPolicy: OnFailure
+
+---
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: model-evaluation-job
+  namespace: churn-prediction
+spec:
+  schedule: "0 2 * * 0"  # Weekly on Sunday at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: model-evaluator
+            image: ghcr.io/your-repo/telco-churn-app/monitoring:latest
+            command:
+            - python
+            - scripts/model_evaluation.py
+            env:
+            - name: MLFLOW_TRACKING_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: churn-app-config
+                  key: MLFLOW_TRACKING_URI
+            volumeMounts:
+            - name: model-storage
+              mountPath: /app/model
+              readOnly: true
+            - name: reports-storage
+              mountPath: /app/reports
+          volumes:
+          - name: model-storage
+            persistentVolumeClaim:
+              claimName: model-pvc
+          - name: reports-storage
+            persistentVolumeClaim:
+              claimName: reports-pvc
+          restartPolicy: OnFailure

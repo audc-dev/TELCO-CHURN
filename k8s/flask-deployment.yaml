@@ -1,0 +1,72 @@
+# k8s/flask-deployment.yaml
+#
+# Flask web application deployment
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-deployment
+  namespace: churn-prediction
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: flask
+  template:
+    metadata:
+      labels:
+        app: flask
+    spec:
+      containers:
+      - name: flask
+        image: ghcr.io/your-repo/telco-churn-app/flask-app:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: FASTAPI_URL
+          valueFrom:
+            configMapKeyRef:
+              name: churn-app-config
+              key: FASTAPI_URL
+        - name: MLFLOW_TRACKING_URI
+          valueFrom:
+            configMapKeyRef:
+              name: churn-app-config
+              key: MLFLOW_TRACKING_URI
+        - name: FLASK_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: churn-app-secrets
+              key: FLASK_SECRET_KEY
+        volumeMounts:
+        - name: model-storage
+          mountPath: /app/model
+          readOnly: true
+        - name: uploads-storage
+          mountPath: /app/uploads
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "125m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: model-pvc
+      - name: uploads-storage
+        persistentVolumeClaim:
+          claimName: uploads-pvc

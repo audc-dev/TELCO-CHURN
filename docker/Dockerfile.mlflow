@@ -1,0 +1,34 @@
+# ============================================== 
+
+# docker/Dockerfile.mlflow
+#
+# MLflow tracking server for experiment management
+# Includes artifact storage and model registry
+
+FROM python:3.9-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install MLflow and dependencies
+RUN pip install mlflow[extras] boto3 psycopg2-binary
+
+# Create MLflow user
+RUN useradd --create-home --shell /bin/bash mlflow_user
+USER mlflow_user
+
+# Create directories
+RUN mkdir -p /app/mlruns /app/artifacts
+
+EXPOSE 5000
+
+# Run MLflow server
+CMD ["mlflow", "server", \
+     "--backend-store-uri", "sqlite:///mlflow.db", \
+     "--default-artifact-root", "./artifacts", \
+     "--host", "0.0.0.0", \
+     "--port", "5000"]

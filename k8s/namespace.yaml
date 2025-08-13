@@ -1,0 +1,12 @@
+# k8s/namespace.yaml
+#
+# Kubernetes namespace for churn prediction application
+# Isolates resources and provides logical separation
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: churn-prediction
+  labels:
+    app: churn-prediction
+    environment: production
