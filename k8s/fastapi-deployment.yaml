@@ -1,0 +1,67 @@
+# k8s/fastapi-deployment.yaml
+#
+# FastAPI high-performance inference service
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-deployment
+  namespace: churn-prediction
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: fastapi
+  template:
+    metadata:
+      labels:
+        app: fastapi
+    spec:
+      containers:
+      - name: fastapi
+        image: ghcr.io/your-repo/telco-churn-app/fastapi-app:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: MLFLOW_TRACKING_URI
+          valueFrom:
+            configMapKeyRef:
+              name: churn-app-config
+              key: MLFLOW_TRACKING_URI
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: churn-app-config
+              key: LOG_LEVEL
+        - name: WORKERS
+          valueFrom:
+            configMapKeyRef:
+              name: churn-app-config
+              key: WORKERS
+        volumeMounts:
+        - name: model-storage
+          mountPath: /app/model
+          readOnly: true
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: model-pvc

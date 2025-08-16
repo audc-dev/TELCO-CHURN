@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}Model Information - Telco Churn Predictor{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Header -->
+    <div class="col-12 mb-4">
+        <div class="card customer-info">
+            <div class="card-body text-center">
+                <h2 class="mb-3">
+                    <i class="fas fa-robot me-2"></i>
+                    Machine Learning Model Information
+                </h2>
+                <p class="mb-0">
+                    Details about the trained churn prediction model
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Overview -->
+    {% if metadata %}
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Model Overview
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <td><strong>Model Type:</strong></td>
+                        <td>{{ metadata.model_name }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Features:</strong></td>
+                        <td>{{ metadata.features|length }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Numeric Features:</strong></td>
+                        <td>{{ metadata.preprocessing.numeric_columns|length }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Categorical Features:</strong></td>
+                        <td>{{ metadata.preprocessing.categorical_columns|length }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Performance -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Performance Metrics
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if metadata.metrics %}
+                <table class="table table-borderless">
+                    <tr>
+                        <td><strong>Accuracy:</strong></td>
+                        <td>
+                            <span class="badge bg-success">
+                                {{ "%.1f"|format(metadata.metrics.accuracy * 100) }}%
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Precision:</strong></td>
+                        <td>
+                            <span class="badge bg-info">
+                                {{ "%.1f"|format(metadata.metrics.precision * 100) }}%
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Recall:</strong></td>
+                        <td>
+                            <span class="badge bg-warning">
+                                {{ "%.1f"|format(metadata.metrics.recall * 100) }}%
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>F1 Score:</strong></td>
+                        <td>
+                            <span class="badge bg-primary">
+                                {{ "%.3f"|format(metadata.metrics.f1) }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>ROC AUC:</strong></td>
+                        <td>
+                            <span class="badge bg-dark">
+                                {{ "%.3f"|format(metadata.metrics.roc_auc) }}
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+                {% else %}
+                <p class="text-muted">Performance metrics not available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Information -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    Feature Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Numeric Features -->
+                    <div class="col-md-6">
+                        <h6>Numeric Features ({{ metadata.preprocessing.numeric_columns|length }}):</h6>
+                        <div class="row">
+                            {% for feature in metadata.preprocessing.numeric_columns %}
+                            <div class="col-12 mb-1">
+                                <span class="badge bg-light text-dark">
+                                    <i class="fas fa-hashtag me-1"></i>
+                                    {{ feature.replace('_', ' ').title() }}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Categorical Features -->
+                    <div class="col-md-6">
+                        <h6>Categorical Features ({{ metadata.preprocessing.categorical_columns|length }}):</h6>
+                        <div class="row">
+                            {% for feature in metadata.preprocessing.categorical_columns %}
+                            <div class="col-12 mb-1">
+                                <span class="badge bg-light text-dark">
+                                    <i class="fas fa-tags me-1"></i>
+                                    {{ feature.replace('_', ' ').title() }}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Hyperparameters -->
+    {% if metadata.metrics.best_params %}
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-cogs me-2"></i>
+                    Optimized Hyperparameters
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for param, value in metadata.metrics.best_params.items() %}
+                    <div class="col-md-4 mb-2">
+                        <div class="card bg-light">
+                            <div class="card-body py-2">
+                                <h6 class="card-title mb-1">{{ param.replace('classifier__', '').replace('_', ' ').title() }}</h6>
+                                <p class="card-text mb-0">
+                                    <code>{{ value }}</code>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- No Metadata Available -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                <h4>Model Metadata Not Available</h4>
+                <p class="text-muted">
+                    The model metadata file could not be found or loaded. 
+                    Please ensure the model has been trained and saved properly.
+                </p>
+                <p class="small text-info">
+                    Expected file: <code>model/model_metadata.json</code>
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Technical Information -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-code me-2"></i>
+                    Technical Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Data Preprocessing:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>Automatic missing value imputation</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Feature scaling (StandardScaler)</li>
+                            <li><i class="fas fa-check text-success me-2"></i>One-hot encoding for categories</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Class imbalance handling</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Model Training:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>Stratified train-test split (80-20)</li>
+                            <li><i class="fas fa-check text-success me-2"></i>5-fold cross-validation</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Grid search hyperparameter tuning</li>
+                            <li><i class="fas fa-check text-success me-2"></i>ROC AUC optimization</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <h6>Removed Features (Automatic Filtering):</h6>
+                        <p class="text-muted small">
+                            The system automatically removes the following types of features to prevent overfitting and data leakage:
+                        </p>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Identifiers:</strong>
+                                <ul class="small text-muted">
+                                    <li>Customer ID</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Geographic:</strong>
+                                <ul class="small text-muted">
+                                    <li>Latitude, Longitude</li>
+                                    <li>Zip Code, City, State</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Temporal & Target Leakage:</strong>
+                                <ul class="small text-muted">
+                                    <li>Quarter</li>
+                                    <li>Churn Reason, Churn Score</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

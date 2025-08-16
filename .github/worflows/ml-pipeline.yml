@@ -1,0 +1,372 @@
+# .github/workflows/ml-pipeline.yml
+#
+# MLOps CI/CD Pipeline for Telco Churn Prediction
+# This workflow automates the entire machine learning lifecycle from development to production
+#
+# Key Features:
+# - Automated testing and code quality checks
+# - Data validation and drift detection
+# - Model training with experiment tracking
+# - Multi-container deployment (Flask, FastAPI, Streamlit)
+# - Production monitoring setup
+# - Comprehensive validation checks
+
+name: MLOps CI/CD Pipeline
+
+# ==============================================
+# TRIGGER CONFIGURATION
+# ==============================================
+on:
+  # Trigger on pushes to main or develop branches
+  push:
+    branches: [ main, develop ]
+  
+  # Trigger on pull requests targeting main branch
+  pull_request:
+    branches: [ main ]
+  
+  # Allow manual triggering with optional parameters
+  workflow_dispatch:
+    inputs:
+      retrain_model:
+        description: 'Force model retraining (bypass data validation checks)'
+        required: false
+        default: 'false'
+
+# ==============================================
+# GLOBAL ENVIRONMENT VARIABLES
+# ==============================================
+env:
+  PYTHON_VERSION: '3.9'  # Python version for all jobs
+  DOCKER_REGISTRY: ghcr.io  # Container registry for Docker images
+  IMAGE_NAME: telco-churn-app  # Base name for Docker images
+
+# ==============================================
+# JOB DEFINITIONS
+# ==============================================
+jobs:
+  # ==============================================
+  # JOB 1: CODE QUALITY & TESTING
+  # Purpose: Ensure code meets quality standards before proceeding
+  # Runs on: All triggers (push, PR, manual)
+  # ==============================================
+  quality-checks:
+    runs-on: ubuntu-latest
+    outputs:
+      should-retrain: ${{ steps.check-data.outputs.retrain-needed }}  # Output for downstream jobs
+    
+    steps:
+    # Checkout repository with full history (needed for DVC)
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Required for DVC to work properly
+
+    # Set up Python environment
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    # Cache pip dependencies to speed up subsequent runs
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+
+    # Install both production and development dependencies
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt  # Production dependencies
+        pip install -r requirements-dev.txt  # Development dependencies
+
+    # CODE QUALITY CHECKS SECTION
+    - name: Code formatting check (Black)
+      run: black --check --diff .  # Verify code follows Black formatting
+
+    - name: Import sorting check (isort)
+      run: isort --check-only --diff .  # Verify proper import organization
+
+    - name: Linting (flake8)
+      run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics  # Basic syntax checking
+
+    - name: Type checking (mypy)
+      run: mypy src/ --ignore-missing-imports  # Static type checking
+
+    - name: Security scan (bandit)
+      run: bandit -r src/ -f json -o security-report.json || true  # Security vulnerability scanning
+
+    # TESTING SECTION
+    - name: Run unit tests
+      run: |
+        pytest tests/ --cov=src --cov-report=xml --cov-report=html  # Run tests with coverage
+        
+    - name: Upload test coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml  # Upload coverage to Codecov
+
+    # ==============================================
+    # DATA VALIDATION SECTION
+    # Purpose: Check data quality and detect drift
+    # ==============================================
+    - name: Setup DVC
+      uses: iterative/setup-dvc@v1  # Install Data Version Control
+
+    - name: Configure DVC remote (S3/GCS)
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      run: |
+        dvc remote modify myremote access_key_id $AWS_ACCESS_KEY_ID
+        dvc remote modify myremote secret_access_key $AWS_SECRET_ACCESS_KEY
+
+    - name: Pull latest data
+      run: dvc pull  # Get latest data from remote storage
+
+    - name: Data validation and drift detection
+      id: check-data  # This step produces the retrain-needed output
+      run: |
+        python scripts/data_validation.py  # Runs data quality checks
+        echo "retrain-needed=$(cat .retrain-flag)" >> $GITHUB_OUTPUT  # Sets output based on validation results
+
+  # ==============================================
+  # JOB 2: MODEL TRAINING & EVALUATION
+  # Purpose: Train new model if data validation indicates need
+  # Runs when: Data drift detected or manual retrain requested
+  # Depends on: quality-checks job
+  # ==============================================
+  model-training:
+    runs-on: ubuntu-latest
+    needs: quality-checks
+    # Only run if data validation says to retrain OR manual override
+    if: needs.quality-checks.outputs.should-retrain == 'true' || github.event.inputs.retrain_model == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install mlflow boto3  # Additional packages needed for training
+
+    - name: Setup DVC
+      uses: iterative/setup-dvc@v1
+
+    - name: Pull training data
+      run: dvc pull data/telco_churn.csv  # Get specific training data file
+
+    # Configure MLflow for experiment tracking
+    - name: Configure MLflow
+      env:
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_USERNAME }}
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_PASSWORD }}
+      run: |
+        export MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI
+        export MLFLOW_EXPERIMENT_NAME="telco-churn-production"
+
+    # Model training with experiment tracking
+    - name: Train model with MLflow tracking
+      env:
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        MLFLOW_EXPERIMENT_NAME: "telco-churn-production"
+      run: |
+        python train_with_mlflow.py  # Main training script
+
+    # Model evaluation against validation set
+    - name: Model evaluation and comparison
+      run: |
+        python scripts/model_evaluation.py  # Compare new model with production
+
+    # Version control for model artifacts
+    - name: Upload model artifacts to DVC
+      run: |
+        dvc add model/best_churn_model.joblib  # Track model file
+        dvc add model/model_metadata.json  # Track metadata
+        dvc push  # Push to remote storage
+
+    # Commit DVC changes to Git (without triggering CI)
+    - name: Commit DVC changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add model/best_churn_model.joblib.dvc model/model_metadata.json.dvc
+        git commit -m "Update model artifacts [skip ci]" || exit 0
+        git push
+
+  # ==============================================
+  # JOB 3: BUILD & TEST DOCKER IMAGES
+  # Purpose: Build container images for all services
+  # Runs on: Matrix strategy for multiple services
+  # Depends on: quality-checks job
+  # ==============================================
+  build-images:
+    runs-on: ubuntu-latest
+    needs: [quality-checks]
+    strategy:
+      matrix:
+        service: [flask-app, fastapi-app, streamlit-app]  # Build all three services
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Set up Docker Buildx for multi-platform builds
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    # Authenticate with GitHub Container Registry
+    - name: Login to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.DOCKER_REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    # Generate appropriate tags for the Docker image
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/${{ matrix.service }}
+        tags: |
+          type=ref,event=branch  # Branch-based tags
+          type=ref,event=pr      # PR-based tags
+          type=sha               # Commit SHA tags
+          type=raw,value=latest,enable={{is_default_branch}}  # Latest tag for main branch
+
+    # Build and push Docker image with caching
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./docker/Dockerfile.${{ matrix.service }}  # Service-specific Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha  # GitHub Actions cache
+        cache-to: type=gha,mode=max
+
+  # ==============================================
+  # JOB 4: MODEL MONITORING SETUP
+  # Purpose: Configure monitoring for production model
+  # Depends on: quality-checks job
+  # ==============================================
+  monitoring-setup:
+    runs-on: ubuntu-latest
+    needs: [quality-checks]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    # Install specialized monitoring packages
+    - name: Install monitoring dependencies
+      run: |
+        pip install evidently pandas mlflow  # Monitoring toolkit
+
+    # Generate data drift and performance reports
+    - name: Generate monitoring reports
+      env:
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+      run: |
+        python scripts/generate_monitoring_reports.py
+
+    # Save reports as workflow artifacts
+    - name: Upload monitoring artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: monitoring-reports
+        path: reports/  # Contains HTML/JSON monitoring reports
+
+  # ==============================================
+  # JOB 5: DEPLOYMENT
+  # Purpose: Deploy services to staging/production
+  # Runs only on: main branch
+  # Depends on: build-images and quality-checks
+  # ==============================================
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build-images, quality-checks]
+    if: github.ref == 'refs/heads/main'  # Only deploy from main branch
+    environment: production  # Protected environment
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Staging deployment (example commands commented out)
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment..."
+        # Example commands:
+        # kubectl apply -f k8s/staging/
+        # docker-compose -f docker-compose.staging.yml up -d
+
+    # Integration tests against staging environment
+    - name: Run integration tests
+      run: |
+        python scripts/integration_tests.py
+
+    # Production deployment (only if staging tests pass)
+    - name: Deploy to production
+      if: success()  # Only run if previous steps succeeded
+      run: |
+        echo "Deploying to production environment..."
+        # Example commands:
+        # kubectl apply -f k8s/production/
+        # docker-compose -f docker-compose.prod.yml up -d
+
+    # Configure alerting for production monitoring
+    - name: Setup monitoring alerts
+      run: |
+        python scripts/setup_alerts.py
+
+  # ==============================================
+  # JOB 6: POST-DEPLOYMENT VALIDATION
+  # Purpose: Verify all services are functioning
+  # Runs only on: main branch after deployment
+  # Depends on: deploy job
+  # ==============================================
+  post-deploy-validation:
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    # Health checks for all services
+    - name: Health check - Flask App
+      run: |
+        curl -f http://your-flask-app-url/health || exit 1
+
+    - name: Health check - FastAPI
+      run: |
+        curl -f http://your-fastapi-url/health || exit 1
+
+    - name: Health check - Streamlit
+      run: |
+        curl -f http://your-streamlit-url/ || exit 1
+
+    # Verify model can make predictions
+    - name: Model prediction test
+      run: |
+        python scripts/prediction_smoke_test.py
+
+    # Performance benchmarking
+    - name: Performance baseline test
+      run: |
+        python scripts/performance_test.py

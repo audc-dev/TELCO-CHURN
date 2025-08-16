@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+
+{% block title %}Predict Churn - Telco Churn Predictor{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Header Section -->
+    <div class="col-12 mb-4">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <h2 class="mb-3">
+                    <i class="fas fa-crystal-ball me-2"></i>
+                    Customer Churn Prediction
+                </h2>
+                <p class="mb-0">
+                    Select a customer from the dropdown to view their data and predict churn probability
+                </p>
+                <div class="mt-3">
+                    <span class="badge bg-light text-dark fs-6">
+                        <i class="fas fa-users me-1"></i>
+                        {{ total_customers }} Customers Loaded
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Selection -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-cog me-2"></i>
+                    Select Customer
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <label for="customerSelect" class="form-label">Choose Customer:</label>
+                        <select class="form-select form-select-lg" id="customerSelect" onchange="loadCustomer()">
+                            <option value="">-- Select a Customer --</option>
+                            {% for customer in customers %}
+                                <option value="{{ customer.index }}">{{ customer.display }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <button class="btn btn-success btn-lg" id="predictBtn" onclick="predictChurn()" disabled>
+                            <i class="fas fa-magic me-2"></i>
+                            Predict Churn Risk
+                        </button>
+                        <div class="loading-spinner mt-2" id="loadingSpinner">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Data Display -->
+    <div class="row" id="customerDataSection" style="display: none;">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-user me-2"></i>
+                        Customer Information (Part 1)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm feature-table" id="customerTable1">
+                            <tbody>
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Customer Information (Part 2)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm feature-table" id="customerTable2">
+                            <tbody>
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prediction Results -->
+    <div class="col-12" id="predictionSection" style="display: none;">
+        <div class="card prediction-card fade-in" id="predictionCard">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Churn Prediction Results
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Main Prediction -->
+                    <div class="col-md-4 text-center">
+                        <div class="p-3 rounded" id="predictionResult">
+                            <!-- Prediction will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Risk Metrics -->
+                    <div class="col-md-4">
+                        <h6>Risk Metrics:</h6>
+                        <div id="riskMetrics">
+                            <!-- Risk metrics will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Contributing Factors -->
+                    <div class="col-md-4">
+                        <h6>Top Contributing Factors:</h6>
+                        <div id="contributingFactors">
+                            <!-- Factors will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Recommendations -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="alert alert-info" id="recommendations">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-lightbulb me-2"></i>
+                                Recommended Actions:
+                            </h6>
+                            <div id="recommendationText">
+                                <!-- Recommendations will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentCustomerIndex = null;
+
+/**
+ * Load customer data when selection changes
+ */
+function loadCustomer() {
+    const select = document.getElementById('customerSelect');
+    const customerIndex = select.value;
+    
+    if (customerIndex === '') {
+        // Hide sections when no customer selected
+        document.getElementById('customerDataSection').style.display = 'none';
+        document.getElementById('predictionSection').style.display = 'none';
+        document.getElementById('predictBtn').disabled = true;
+        currentCustomerIndex = null;
+        return;
+    }
+    
+    currentCustomerIndex = customerIndex;
+    showLoading(true);
+    
+    // Fetch customer data from API
+    fetch(`/api/customer/${customerIndex}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            displayCustomerData(data);
+            document.getElementById('predictBtn').disabled = false;
+        })
+        .catch(error => {
+            console.error('Error loading customer:', error);
+            alert('Error loading customer data: ' + error.message);
+        })
+        .finally(() => {
+            showLoading(false);
+        });
+}
+
+/**
+ * Display customer data in the two-column layout
+ */
+function displayCustomerData(data) {
+    // Populate first column
+    const table1 = document.getElementById('customerTable1');
+    table1.innerHTML = '';
+    data.column1.forEach(item => {
+        const row = table1.insertRow();
+        row.innerHTML = `
+            <td><strong>${item.feature}</strong></td>
+            <td>${item.value}</td>
+        `;
+    });
+    
+    // Populate second column
+    const table2 = document.getElementById('customerTable2');
+    table2.innerHTML = '';
+    data.column2.forEach(item => {
+        const row = table2.insertRow();
+        row.innerHTML = `
+            <td><strong>${item.feature}</strong></td>
+            <td>${item.value}</td>
+        `;
+    });
+    
+    // Show customer data section
+    document.getElementById('customerDataSection').style.display = 'block';
+    
+    // Hide prediction section until prediction is made
+    document.getElementById('predictionSection').style.display = 'none';
+}
+
+/**
+ * Make churn prediction for selected customer
+ */
+function predictChurn() {
+    if (currentCustomerIndex === null) {
+        alert('Please select a customer first');
+        return;
+    }
+    
+    showLoading(true);
+    document.getElementById('predictBtn').disabled = true;
+    
+    // Fetch prediction from API
+    fetch(`/api/predict/${currentCustomerIndex}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            displayPredictionResults(data);
+        })
+        .catch(error => {
+            console.error('Error making prediction:', error);
+            alert('Error making prediction: ' + error.message);
+        })
+        .finally(() => {
+            showLoading(false);
+            document.getElementById('predictBtn').disabled = false;
+        });
+}
+
+/**
+ * Display prediction results
+ */
+function displayPredictionResults(data) {
+    // Update card styling based on risk level
+    const predictionCard = document.getElementById('predictionCard');
+    predictionCard.className = `card prediction-card fade-in risk-${data.risk_level.toLowerCase()}`;
+    
+    // Main prediction result
+    const predictionResult = document.getElementById('predictionResult');
+    predictionResult.innerHTML = `
+        <div class="badge bg-${data.risk_color} fs-6 mb-2">
+            ${data.risk_level} Risk
+        </div>
+        <h4 class="mb-2">${data.prediction}</h4>
+        <p class="mb-0">
+            <strong>Probability: ${data.churn_probability}</strong>
+        </p>
+    `;
+    
+    // Risk metrics
+    const riskMetrics = document.getElementById('riskMetrics');
+    riskMetrics.innerHTML = `
+        <div class="mb-2">
+            <small class="text-muted">Churn Probability:</small><br>
+            <strong class="text-${data.risk_color}">${data.churn_probability}</strong>
+        </div>
+        <div class="mb-2">
+            <small class="text-muted">Model Confidence:</small><br>
+            <strong>${data.confidence}</strong>
+        </div>
+        <div class="mb-2">
+            <small class="text-muted">Risk Level:</small><br>
+            <span class="badge bg-${data.risk_color}">${data.risk_level}</span>
+        </div>
+    `;
+    
+    // Contributing factors
+    const contributingFactors = document.getElementById('contributingFactors');
+    if (data.contributing_factors && data.contributing_factors.length > 0) {
+        let factorsHtml = '<ul class="list-unstyled small">';
+        data.contributing_factors.forEach(factor => {
+            factorsHtml += `
+                <li class="mb-1">
+                    <i class="fas fa-arrow-right text-primary me-1"></i>
+                    ${factor.feature}
+                    <span class="text-muted">(${factor.importance})</span>
+                </li>
+            `;
+        });
+        factorsHtml += '</ul>';
+        contributingFactors.innerHTML = factorsHtml;
+    } else {
+        contributingFactors.innerHTML = '<p class="text-muted small">Feature importance not available for this model</p>';
+    }
+    
+    // Generate recommendations based on risk level
+    const recommendationText = document.getElementById('recommendationText');
+    let recommendations = '';
+    
+    if (data.risk_level === 'High') {
+        recommendations = `
+            <ul class="mb-0">
+                <li><strong>Immediate Action Required:</strong> Contact customer within 24-48 hours</li>
+                <li><strong>Retention Offer:</strong> Consider special discount or service upgrade</li>
+                <li><strong>Personal Touch:</strong> Assign dedicated account manager</li>
+                <li><strong>Survey:</strong> Conduct satisfaction survey to identify pain points</li>
+            </ul>
+        `;
+    } else if (data.risk_level === 'Medium') {
+        recommendations = `
+            <ul class="mb-0">
+                <li><strong>Proactive Engagement:</strong> Reach out within 1-2 weeks</li>
+                <li><strong>Value Communication:</strong> Highlight unused services and benefits</li>
+                <li><strong>Loyalty Program:</strong> Enroll in customer loyalty program</li>
+                <li><strong>Monitor:</strong> Track usage patterns for early warning signs</li>
+            </ul>
+        `;
+    } else {
+        recommendations = `
+            <ul class="mb-0">
+                <li><strong>Maintain Service:</strong> Continue providing excellent customer service</li>
+                <li><strong>Upselling Opportunity:</strong> Consider offering additional services</li>
+                <li><strong>Referral Program:</strong> Encourage customer referrals</li>
+                <li><strong>Regular Check-in:</strong> Quarterly satisfaction survey</li>
+            </ul>
+        `;
+    }
+    
+    recommendationText.innerHTML = recommendations;
+    
+    // Show prediction section with animation
+    document.getElementById('predictionSection').style.display = 'block';
+    
+    // Scroll to prediction results
+    document.getElementById('predictionSection').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+    });
+}
+
+/**
+ * Show/hide loading spinner
+ */
+function showLoading(show) {
+    const spinner = document.getElementById('loadingSpinner');
+    spinner.style.display = show ? 'block' : 'none';
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Prediction page loaded');
+});
+</script>
+{% endblock %}

@@ -1,0 +1,68 @@
+# k8s/streamlit-deployment.yaml
+#
+# Streamlit dashboard deployment
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: streamlit-deployment
+  namespace: churn-prediction
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: streamlit
+  template:
+    metadata:
+      labels:
+        app: streamlit
+    spec:
+      containers:
+      - name: streamlit
+        image: ghcr.io/your-repo/telco-churn-app/streamlit-app:latest
+        ports:
+        - containerPort: 8501
+        env:
+        - name: FASTAPI_URL
+          valueFrom:
+            configMapKeyRef:
+              name: churn-app-config
+              key: FASTAPI_URL
+        - name: MLFLOW_TRACKING_URI
+          valueFrom:
+            configMapKeyRef:
+              name: churn-app-config
+              key: MLFLOW_TRACKING_URI
+        volumeMounts:
+        - name: model-storage
+          mountPath: /app/model
+          readOnly: true
+        - name: reports-storage
+          mountPath: /app/reports
+          readOnly: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "125m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8501
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8501
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: model-pvc
+      - name: reports-storage
+        persistentVolumeClaim:
+          claimName: reports-pvc

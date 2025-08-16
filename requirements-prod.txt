@@ -1,0 +1,31 @@
+# requirements-prod.txt
+#
+# Production deployment requirements
+# Includes WSGI servers and production optimizations
+
+# Production WSGI server
+gunicorn==21.2.0             # WSGI HTTP Server
+gevent==23.7.0               # Async worker support
+
+# Core application requirements
+Flask==2.3.3
+pandas==2.1.1
+numpy==1.24.3
+scikit-learn==1.7.0
+joblib==1.3.2
+
+# Production monitoring
+prometheus-flask-exporter==0.23.0  # Prometheus metrics
+sentry-sdk==1.29.2                 # Error tracking
+
+# Security enhancements
+flask-talisman==1.1.0        # Security headers
+flask-limiter==3.5.0         # Rate limiting
+
+# Logging and observability
+structlog==23.1.0            # Structured logging
+python-json-logger==2.0.7    # JSON log formatting
+
+# Database (if needed)
+psycopg2-binary==2.9.7       # PostgreSQL adapter
+redis==4.6.0                 # Redis client

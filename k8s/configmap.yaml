@@ -1,0 +1,28 @@
+# k8s/configmap.yaml
+#
+# Configuration management for application settings
+# Stores non-sensitive configuration data
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: churn-app-config
+  namespace: churn-prediction
+data:
+  # Application configuration
+  FLASK_ENV: "production"
+  LOG_LEVEL: "info"
+  WORKERS: "4"
+  
+  # Service URLs
+  FASTAPI_URL: "http://fastapi-service:8000"
+  MLFLOW_TRACKING_URI: "http://mlflow-service:5000"
+  
+  # Monitoring configuration
+  MONITORING_INTERVAL: "300"
+  DRIFT_CHECK_INTERVAL: "3600"
+  
+  # Database configuration (non-sensitive)
+  POSTGRES_DB: "mlflow_db"
+  POSTGRES_HOST: "postgres-service"
+  POSTGRES_PORT: "5432"
