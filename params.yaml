@@ -1,0 +1,154 @@
+# params.yaml
+#
+# DVC parameters file for reproducible experiments
+# Centralizes all hyperparameters and configuration settings
+
+# ==============================================
+# DATA PREPARATION PARAMETERS
+# ==============================================
+data_prep:
+  drop_columns:
+    - Customer ID
+    - Lat Long
+    - Latitude
+    - Longitude
+    - Zip Code
+    - City
+    - State
+    - Country
+    - Quarter
+    - Churn Reason
+    - Churn Score
+    - Churn Category
+    - Category
+    - Customer Status
+    - Dependents
+    - Device Protection Plan
+    - Gender
+    - Under 30
+    - Married
+    - Number of Dependents
+    - Number of Referrals
+    - Payment Method
+    - Offer
+    - Online Backup
+    - Online Security
+    - Paperless Billing
+    - Partner
+    - Premium Tech Support
+    - Referred a Friend
+    - Senior Citizen
+    - Total Refunds
+  
+  missing_value_strategy:
+    numeric: median
+    categorical: most_frequent
+  
+  validation_rules:
+    min_samples: 1000
+    max_missing_percentage: 0.3
+    required_columns:
+      - Monthly Charges
+      - Total Charges
+      - Tenure Months
+      - Churn
+
+# ==============================================
+# FEATURE ENGINEERING PARAMETERS
+# ==============================================
+feature_eng:
+  create_interaction_features: false
+  polynomial_features: false
+  feature_selection_threshold: 0.01
+  
+  feature_scaling:
+    method: standard
+    robust_scaling: false
+  
+  categorical_encoding:
+    method: onehot
+    handle_unknown: ignore
+    drop_first: false
+
+# ==============================================
+# MODEL TRAINING PARAMETERS
+# ==============================================
+training:
+  models_to_try:
+    - logistic_regression
+    - random_forest
+    - gradient_boosting
+    - xgboost  # Optional if available
+  
+  cv_folds: 5
+  test_size: 0.2
+  random_seed: 42
+  
+  class_balance_strategy: balanced
+  scoring_metric: roc_auc
+  
+  hyperparameter_tuning:
+    method: grid_search
+    n_jobs: -1
+    verbose: 1
+
+# ==============================================
+# MODEL EVALUATION PARAMETERS
+# ==============================================
+evaluation:
+  metrics_to_calculate:
+    - accuracy
+    - precision
+    - recall
+    - f1
+    - roc_auc
+    - average_precision
+  
+  plot_types:
+    - confusion_matrix
+    - roc_curve
+    - precision_recall_curve
+    - feature_importance
+    - shap_summary
+  
+  explanation_samples: 100
+  shap_max_display: 20
+
+# ==============================================
+# MONITORING PARAMETERS
+# ==============================================
+monitoring:
+  drift_detection:
+    reference_window_days: 30
+    current_window_days: 7
+    drift_threshold: 0.1
+    
+  performance_monitoring:
+    alert_thresholds:
+      accuracy_drop: 0.05
+      drift_score: 0.1
+      prediction_volume_change: 0.5
+    
+  data_quality:
+    missing_value_threshold: 0.1
+    outlier_detection_method: iqr
+    outlier_threshold: 3.0
+
+# ==============================================
+# DEPLOYMENT PARAMETERS
+# ==============================================
+deployment:
+  model_serving:
+    batch_size: 32
+    timeout_seconds: 30
+    max_concurrent_requests: 100
+  
+  api_configuration:
+    rate_limiting:
+      requests_per_minute: 1000
+      burst_limit: 50
+    
+  monitoring_intervals:
+    health_check_seconds: 30
+    metrics_collection_minutes: 5
+    drift_analysis_hours: 24

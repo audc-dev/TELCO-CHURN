@@ -29,13 +29,16 @@ import json
 import os
 from werkzeug.utils import secure_filename
 
-app = Flask(__name__)
+# Get the root project directory (two levels up from this file)
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+app = Flask(__name__, template_folder=os.path.join(ROOT_DIR, 'templates'))
 app.secret_key = 'your-secret-key-change-this-in-production'
 
 # Configuration
-UPLOAD_FOLDER = 'uploads'
-MODEL_PATH = 'model/best_churn_model.joblib'
-METADATA_PATH = 'model/model_metadata.json'
+UPLOAD_FOLDER = os.path.join(ROOT_DIR, 'uploads')
+MODEL_PATH = os.path.join(ROOT_DIR, 'model', 'best_churn_model.joblib')
+METADATA_PATH = os.path.join(ROOT_DIR, 'model', 'model_metadata.json')
 ALLOWED_EXTENSIONS = {'csv'}
 
 # Create upload directory if it doesn't exist

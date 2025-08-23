@@ -1,0 +1,47 @@
+# .dvcignore
+# 
+# Files and directories to ignore in DVC tracking
+# Similar to .gitignore but for DVC operations
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Model artifacts that shouldn't be versioned
+model/temp_*
+model/*.pkl.tmp
+
+# Large intermediate files
+data/temp/
+data/cache/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
