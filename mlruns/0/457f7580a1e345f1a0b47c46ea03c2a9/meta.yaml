@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/caudi/Documents/BdeB/A61/PROJET_SYNTHESE_IA/venv/TELCO-CHURN/mlruns/0/457f7580a1e345f1a0b47c46ea03c2a9/artifacts
+end_time: 1756124139442
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 457f7580a1e345f1a0b47c46ea03c2a9
+run_name: Model_Bagging Classifier
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756124126858
+status: 3
+tags: []
+user_id: caudi

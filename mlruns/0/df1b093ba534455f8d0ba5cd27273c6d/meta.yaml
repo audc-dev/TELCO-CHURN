@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/caudi/Documents/BdeB/A61/PROJET_SYNTHESE_IA/venv/TELCO-CHURN/mlruns/0/df1b093ba534455f8d0ba5cd27273c6d/artifacts
+end_time: 1756124193940
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: df1b093ba534455f8d0ba5cd27273c6d
+run_name: Hyperparameter_Tuning_Random Forest
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756124139488
+status: 3
+tags: []
+user_id: caudi

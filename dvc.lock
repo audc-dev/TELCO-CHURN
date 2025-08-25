@@ -1,0 +1,109 @@
+schema: '2.0'
+stages:
+  prepare_data:
+    cmd: python scripts/data_preparation.py
+    deps:
+    - path: data/raw/telco_churn_raw.csv
+      hash: md5
+      md5: 59d08a3b3232973c3d8ba74931c3154b
+      size: 3794440
+    - path: scripts/data_preparation.py
+      hash: md5
+      md5: 603a4ca58683949e3d788f833ed27365
+      size: 13812
+    params:
+      params.yaml:
+        data_prep.drop_columns:
+        - Customer ID
+        - Lat Long
+        - Latitude
+        - Longitude
+        - Zip Code
+        - City
+        - State
+        - Country
+        - Quarter
+        - Churn Reason
+        - Churn Score
+        - Churn Category
+        - Category
+        - Customer Status
+        - Dependents
+        - Device Protection Plan
+        - Gender
+        - Under 30
+        - Married
+        - Number of Dependents
+        - Number of Referrals
+        - Payment Method
+        - Offer
+        - Online Backup
+        - Online Security
+        - Paperless Billing
+        - Partner
+        - Premium Tech Support
+        - Referred a Friend
+        - Senior Citizen
+        - Total Refunds
+        data_prep.missing_value_strategy:
+          numeric: median
+          categorical: most_frequent
+        data_prep.validation_rules:
+          min_samples: 1000
+          max_missing_percentage: 0.3
+          required_columns:
+          - Monthly Charges
+          - Total Charges
+          - Tenure Months
+          - Churn
+    outs:
+    - path: data/processed/data_validation_report.html
+      hash: md5
+      md5: 572deeb33bbf08f14c68323edac037c5
+      size: 2740
+    - path: data/processed/telco_churn.csv
+      hash: md5
+      md5: f4a2756108b6a856670f9da9e5a99503
+      size: 1393340
+    - path: reports/data_quality_metrics.json
+      hash: md5
+      md5: 16c79c77e2706031a3bd3bccd257978a
+      size: 6206
+  train_model:
+    cmd: python train.py
+    deps:
+    - path: data/processed/telco_churn.csv
+      hash: md5
+      md5: f4a2756108b6a856670f9da9e5a99503
+      size: 1393340
+    - path: params.yaml
+      hash: md5
+      md5: 881b97aebf309ae99d3101db16cda076
+      size: 3513
+    - path: train.py
+      hash: md5
+      md5: da405f447627e22262f5d400020b6190
+      size: 22573
+    params:
+      params.yaml:
+        training.cv_folds: 5
+        training.models_to_try:
+        - logistic_regression
+        - random_forest
+        - gradient_boosting
+        - xgboost
+        training.random_seed: 42
+        training.test_size: 0.2
+    outs:
+    - path: model/best_churn_model.joblib
+      hash: md5
+      md5: d3510a77eed7d1c2206ef2d7690228ac
+      size: 27898699
+    - path: model/evaluation_metrics.png
+      hash: md5
+      md5: 5bf0bb647b1c4947a8115e9403d64e06
+      size: 129726
+    - path: model/model_metadata.json
+      hash: md5
+      md5: 9e815bda7f77ab2cc03f072777802741
+      size: 2115

@@ -1,13 +1,13 @@
 # docker-compose.yml
 #
-# Multi-service Docker Compose configuration for local development
-# Includes all services: Flask, FastAPI, Streamlit, MLflow, PostgreSQL
+# Multi-service Docker Compose configuration for MLOps pipeline
+# Integrated with MLflow tracking server and training workflow
 
-version: '3.8'
+#version: '3.8'
 
 services:
   # ==============================================
-  # DATABASE SERVICE
+  # DATABASE SERVICE (for MLflow backend)
   # ==============================================
   postgres:
     image: postgres:15-alpine
@@ -16,21 +16,35 @@ services:
       POSTGRES_DB: mlflow_db
       POSTGRES_USER: mlflow_user
       POSTGRES_PASSWORD: mlflow_password
+      POSTGRES_INITDB_ARGS: "--auth-local=trust --auth-host=scram-sha-256"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      #- ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
     ports:
       - "5432:5432"
     networks:
-      - ml_network
+      - churn_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U mlflow_user -d mlflow_db"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    command: >
+      postgres
+      -c log_statement=all
+      -c log_destination=stderr
+      -c logging_collector=off
 
   # ==============================================
-  # MLFLOW TRACKING SERVER
+  # MLFLOW TRACKING SERVER (matching train.py port 8080)
   # ==============================================
   mlflow:
     build:
@@ -39,181 +53,93 @@ services:
     container_name: churn_mlflow
     environment:
       - MLFLOW_BACKEND_STORE_URI=postgresql://mlflow_user:mlflow_password@postgres:5432/mlflow_db
-      - MLFLOW_DEFAULT_ARTIFACT_ROOT=s3://your-mlflow-bucket/artifacts
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=/app/mlflow-artifacts
+      - MLFLOW_SERVE_ARTIFACTS=true
+      - MLFLOW_HOST=0.0.0.0
+      - MLFLOW_PORT=5000   # Container internal port
     ports:
-      - "5000:5000"
+      - "8080:5000"  # Host:8080 → Container:5000
     volumes:
-      - mlflow_artifacts:/app/artifacts
+      - mlflow_artifacts:/app/mlflow-artifacts
       - ./model:/app/model
+      - ./data:/app/data:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - churn_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    command: >
+      mlflow server 
+      --backend-store-uri postgresql://mlflow_user:mlflow_password@postgres:5432/mlflow_db
+      --default-artifact-root /app/mlflow-artifacts
+      --host 0.0.0.0 
+      --port 5000
+      --serve-artifacts
+
+  # ==============================================
+  # TRAINING SERVICE (runs train.py)
+  # ==============================================
+  training:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.training
+    container_name: churn_training
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000  # Container internal access
+      - PYTHONPATH=/app
+    volumes:
+      - ./data:/app/data
+      - ./model:/app/model
+      - ./scripts:/app/scripts
+      - ./train.py:/app/train.py:ro
+      - ./params.yaml:/app/params.yaml:ro
     depends_on:
       mlflow:
         condition: service_healthy
     networks:
-      - ml_network
-    deploy:
-      replicas: 3
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
-      restart_policy:
-        condition: on-failure
-        max_attempts: 3
-
-  flask:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.flask-app
-    environment:
-      - FASTAPI_URL=http://fastapi:8000
-      - MLFLOW_TRACKING_URI=http://mlflow:5000
-      - FLASK_ENV=production
-      - WORKERS=4
-    volumes:
-      - model_data:/app/model:ro
-      - uploads_data:/app/uploads
-    depends_on:
-      fastapi:
-        condition: service_healthy
-    networks:
-      - ml_network
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-
-  streamlit:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.streamlit-app
-    environment:
-      - FASTAPI_URL=http://fastapi:8000
-      - MLFLOW_TRACKING_URI=http://mlflow:5000
-    volumes:
-      - model_data:/app/model:ro
-      - monitoring_data:/app/reports:ro
-    depends_on:
-      fastapi:
-        condition: service_healthy
-    networks:
-      - ml_network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - flask
-      - fastapi
-      - streamlit
-    networks:
-      - ml_network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
+      - churn_network
+    profiles:
+      - training  # Only start when explicitly requested
+    command: python train.py
 
   # ==============================================
-  # MONITORING AND ALERTING
-  # ==============================================
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: churn_prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    networks:
-      - ml_network
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: churn_grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-    networks:
-      - ml_network
-    depends_on:
-      - prometheus
-
-volumes:
-  postgres_data:
-  mlflow_artifacts:
-  model_data:
-  uploads_data:
-  monitoring_data:
-  prometheus_data:
-  grafana_data:
-
-networks:
-  ml_network:
-    driver: bridge:
-      postgres:
-        condition: service_healthy
-    networks:
-      - ml_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # ==============================================
-  # FASTAPI SERVICE (HIGH-PERFORMANCE API)
+  # FASTAPI SERVICE (prediction API)
   # ==============================================
   fastapi:
     build:
-      context: .
-      dockerfile: docker/Dockerfile.fastapi-app
+      context: ./src/fastapi-app
+      dockerfile: ../../docker/Dockerfile.fastapi-app
     container_name: churn_fastapi
     environment:
-      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_TRACKING_URI=http://mlflow:5000  # Container internal access
       - MODEL_PATH=/app/model/best_churn_model.joblib
       - LOG_LEVEL=info
+      - PYTHONPATH=/app
     ports:
       - "8000:8000"
     volumes:
       - ./model:/app/model:ro
       - ./data:/app/data:ro
       - ./reports:/app/reports
+      - ./src/fastapi-app:/app/src:ro  # Mount source code
     depends_on:
       mlflow:
         condition: service_healthy
     networks:
-      - ml_network
+      - churn_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
     deploy:
-      replicas: 2
       resources:
         limits:
           cpus: '1.0'
@@ -224,13 +150,14 @@ networks:
   # ==============================================
   flask:
     build:
-      context: .
-      dockerfile: docker/Dockerfile.flask-app
+      context: ./src/flask-app
+      dockerfile: ../../docker/Dockerfile.flask-app
     container_name: churn_flask
     environment:
       - FASTAPI_URL=http://fastapi:8000
-      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_TRACKING_URI=http://mlflow:5000  # Container internal access
       - FLASK_ENV=production
+      - PYTHONPATH=/app
     ports:
       - "5001:5000"
     volumes:
@@ -238,67 +165,162 @@ networks:
       - ./templates:/app/templates:ro
       - ./static:/app/static:ro
       - ./uploads:/app/uploads
+      - ./src/flask-app:/app/src:ro  # Mount source code
     depends_on:
       fastapi:
         condition: service_healthy
     networks:
-      - ml_network
+      - churn_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
   # ==============================================
   # STREAMLIT DASHBOARD
   # ==============================================
   streamlit:
     build:
-      context: .
-      dockerfile: docker/Dockerfile.streamlit-app
+      context: ./src/streamlit-app
+      dockerfile: ../../docker/Dockerfile.streamlit-app
     container_name: churn_streamlit
     environment:
       - FASTAPI_URL=http://fastapi:8000
-      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_TRACKING_URI=http://mlflow:5000  # Container internal access
+      - PYTHONPATH=/app
     ports:
       - "8501:8501"
     volumes:
       - ./model:/app/model:ro
       - ./data:/app/data:ro
-      - ./reports:/app/reports
+      - ./reports:/app/reports:ro
+      - ./src/streamlit-app:/app/src:ro  # Mount source code
     depends_on:
       fastapi:
         condition: service_healthy
     networks:
-      - ml_network
+      - churn_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8501/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
   # ==============================================
-  # MONITORING SERVICE (EVIDENTLY)
+  # DVC DATA PIPELINE (runs DVC repro)
+  # ==============================================
+  dvc-pipeline:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dvc
+    container_name: churn_dvc_pipeline
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000  # Container internal access
+      - PYTHONPATH=/app
+    volumes:
+      - ./data:/app/data
+      - ./model:/app/model
+      - ./scripts:/app/scripts
+      - ./reports:/app/reports
+      - ./dvc.yaml:/app/dvc.yaml:ro
+      - ./params.yaml:/app/params.yaml:ro
+      - ./.dvc:/app/.dvc:ro
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    networks:
+      - churn_network
+    profiles:
+      - pipeline  # Only start when explicitly requested
+    command: dvc repro
+
+  # ==============================================
+  # MONITORING SERVICE
   # ==============================================
   monitoring:
     build:
-      context: .
-      dockerfile: docker/Dockerfile.monitoring
+      context: ./src/monitoring
+      dockerfile: ../../docker/Dockerfile.monitoring
     container_name: churn_monitoring
     environment:
       - FASTAPI_URL=http://fastapi:8000
-      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_TRACKING_URI=http://mlflow:5000  # Container internal access
       - MONITORING_INTERVAL=300  # 5 minutes
+      - PYTHONPATH=/app
     volumes:
       - ./data:/app/data:ro
       - ./reports:/app/reports
       - ./model:/app/model:ro
+      - ./src/monitoring:/app/src:ro  # Mount source code
     depends_on:
       - fastapi
       - mlflow
     networks:
-      - ml_network
+      - churn_network
+    restart: unless-stopped
     command: python monitoring_service.py
+
+# ==============================================
+  # PROMETHEUS MONITORING
+  # ==============================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: churn_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - churn_network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+
+  # ==============================================
+  # GRAFANA DASHBOARD
+  # ==============================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: churn_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_INSTALL_PLUGINS=prometheus-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - churn_network
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
 
   # ==============================================
   # REVERSE PROXY (NGINX)
@@ -316,22 +338,44 @@ networks:
       - flask
       - fastapi
       - streamlit
+      - mlflow
     networks:
-      - ml_network
+      - churn_network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
 # ==============================================
 # NETWORKS AND VOLUMES
 # ==============================================
 
 networks:
-  ml_network:
+  churn_network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
 
 volumes:
   postgres_data:
+    driver: local
   mlflow_artifacts:
+    driver: local
+  model_data:
+    driver: local
+  uploads_data:
+    driver: local
+  monitoring_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

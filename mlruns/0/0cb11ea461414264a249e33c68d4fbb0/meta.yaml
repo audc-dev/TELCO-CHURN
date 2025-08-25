@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/caudi/Documents/BdeB/A61/PROJET_SYNTHESE_IA/venv/TELCO-CHURN/mlruns/0/0cb11ea461414264a249e33c68d4fbb0/artifacts
+end_time: 1756124026246
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 0cb11ea461414264a249e33c68d4fbb0
+run_name: Model_Random Forest
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756124011395
+status: 3
+tags: []
+user_id: caudi

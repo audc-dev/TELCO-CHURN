@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/caudi/Documents/BdeB/A61/PROJET_SYNTHESE_IA/venv/TELCO-CHURN/mlruns/0/041d9df0a5524b02b2efa8a8dc4feb5f/artifacts
+end_time: 1756124044813
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 041d9df0a5524b02b2efa8a8dc4feb5f
+run_name: Model_Gradient Boosting
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756124026276
+status: 3
+tags: []
+user_id: caudi

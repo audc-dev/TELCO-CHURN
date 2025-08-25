@@ -27,27 +27,28 @@ stages:
   # ==============================================
   # STAGE 2: FEATURE ENGINEERING
   # ==============================================
-  feature_engineering:
-    cmd: python scripts/feature_engineering.py
-    deps:
-      - data/processed/telco_churn.csv
-      - scripts/feature_engineering.py
-    outs:
-      - data/features/training_features.csv
-      - data/features/feature_metadata.json
-    params:
-      - feature_eng.create_interaction_features
-      - feature_eng.polynomial_features
-      - feature_eng.feature_selection_threshold
+  #feature_engineering:
+  #  cmd: python scripts/feature_engineering.py
+  #  deps:
+  #    - data/processed/telco_churn.csv
+  #    - scripts/feature_engineering.py
+  #  outs:
+  #    - data/features/training_features.csv
+  #    - data/features/feature_metadata.json
+  #  params:
+  #    - feature_eng.create_interaction_features
+  #    - feature_eng.polynomial_features
+  #    - feature_eng.feature_selection_threshold
 
   # ==============================================
   # STAGE 3: MODEL TRAINING
   # ==============================================
   train_model:
-    cmd: python train_with_mlflow.py
+    cmd: python train.py
     deps:
-      - data/features/training_features.csv
-      - train_with_mlflow.py
+      - data/processed/telco_churn.csv  # Use this instead of training_features.csv
+      - params.yaml
+      - train.py
     outs:
       - model/best_churn_model.joblib
       - model/model_metadata.json
@@ -57,9 +58,7 @@ stages:
       - training.cv_folds
       - training.test_size
       - training.random_seed
-    metrics:
-      - reports/training_metrics.json
-
+    
   # ==============================================
   # STAGE 4: MODEL EVALUATION
   # ==============================================
@@ -67,7 +66,7 @@ stages:
     cmd: python scripts/model_evaluation.py
     deps:
       - model/best_churn_model.joblib
-      - data/features/training_features.csv
+      - data/processed/telco_churn.csv
       - scripts/model_evaluation.py
     outs:
       - reports/model_evaluation_report.html

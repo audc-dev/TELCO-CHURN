@@ -46,42 +46,63 @@ import json
 import os
 import tempfile
 import shutil
+import requests
+from requests.exceptions import ConnectionError
 
 # ==============================================
-# 1.5 SETTING UP MLFLOW
+# 1.5 SETTING UP MLFLOW - ROBUST VERSION
 # ==============================================
 
-#Run the following command in the cmd line to start the MLflow server:
-#mlflow server --host 127.0.0.1 --port 8080
+# Clean up any existing MLflow directory to avoid corruption issues
+MLFLOW_DIR = "./mlruns"
+if os.path.exists(MLFLOW_DIR):
+    print(f"🧹 Cleaning up existing MLflow directory: {MLFLOW_DIR}")
+    shutil.rmtree(MLFLOW_DIR)
 
-# Set MLflow tracking URI and experiment
-MLFLOW_TRACKING_URI = os.getenv('MLFLOW_TRACKING_URI', 'http://127.0.0.1:8080')
-EXPERIMENT_NAME = "telco-churn-prediction"
+# Determine MLflow URI based on environment
+if os.getenv('DOCKER_CONTAINERIZED') == '1':
+    MLFLOW_TRACKING_URI = 'http://mlflow:5000'
+else:
+    MLFLOW_TRACKING_URI = 'http://127.0.0.1:8080'
 
-mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-mlflow.set_experiment(EXPERIMENT_NAME)
+def test_mlflow_connection(uri):
+    """Test if MLflow server is accessible"""
+    try:
+        if uri.startswith('http'):
+            response = requests.get(f"{uri}/api/2.0/mlflow/experiments/list", timeout=10)
+            return response.status_code == 200
+        return True  # For file-based URIs
+    except:
+        return False
 
-print(f"🔬 MLflow tracking URI: {MLFLOW_TRACKING_URI}")
-print(f"🧪 Experiment: {EXPERIMENT_NAME}")
+# Test connection and set appropriate tracking URI
+if test_mlflow_connection(MLFLOW_TRACKING_URI):
+    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+    print(f"📬 Connected to MLflow server: {MLFLOW_TRACKING_URI}")
+else:
+    print(f"⚠️  Cannot connect to {MLFLOW_TRACKING_URI}")
+    print("📁 Falling back to local file-based tracking")
+    # Don't set tracking URI - use default local file tracking
 
-# Define a run name for this iteration of training.
-# If this is not set, a unique name will be auto-generated for your run.
+try:
+    mlflow.set_experiment(EXPERIMENT_NAME)
+    print(f"🧪 Experiment: {EXPERIMENT_NAME}")
+except Exception as e:
+    print(f"❌ Error setting up MLflow experiment: {e}")
+    print("📁 Using default experiment")
+
+# Rest of your MLflow setup code...
 run_name = "churn_classifier_test"
-
-# Define an artifact path that the model will be saved to.
 name = "classifier_churn"
 
-# Provide an Experiment description that will appear in the UI
 experiment_description = (
     "This is the client churning prediction project. "
     "This experiment contains client data to predict whether they will churn or not."
 )
 
-# Provide searchable tags that define characteristics of the Runs that
-# will be in this Experiment
 experiment_tags = {
     "project_name": "churn-prediction",
-    "business_dept": "customer-retention",
+    "business_dept": "customer-retention", 
     "team": "analytics-ml",
     "project_quarter": "Q3-2025",
     "mlflow.note.content": experiment_description,
@@ -96,7 +117,7 @@ os.makedirs('model', exist_ok=True)
 
 # Load raw data with error handling
 try:
-    df = pd.read_csv('data/telco_churn.csv')
+    df = pd.read_csv('./data/processed/telco_churn.csv')
     print("✅ Data loaded successfully. Shape:", df.shape)
 except FileNotFoundError:
     raise FileNotFoundError("❌ 'telco_churn.csv' not found. Please ensure the file exists in the current directory.")
@@ -487,10 +508,10 @@ print("\n📊 Confusion Matrix:")
 print(confusion_matrix(y_test, y_pred_final))
 
 # Create diagnostic plots
-plt.figure(figsize=(15, 12))
+fig = plt.figure(figsize=(15, 12))
 
 # Confusion Matrix
-plt.subplot(2, 2, 1)
+ax1 = fig.add_subplot(2, 2, 1)
 sns.heatmap(confusion_matrix(y_test, y_pred_final), 
             annot=True, fmt='d', cmap='Blues',
             xticklabels=['No Churn', 'Churn'],
@@ -498,12 +519,12 @@ sns.heatmap(confusion_matrix(y_test, y_pred_final),
 plt.title('Confusion Matrix')
 
 # ROC Curve
-plt.subplot(2, 2, 2)
-RocCurveDisplay.from_estimator(best_model, X_test, y_test)
+ax2 = fig.add_subplot(2, 2, 2)
+RocCurveDisplay.from_estimator(best_model, X_test, y_test, ax=ax2)
 plt.title('ROC Curve')
 
 # Precision-Recall Curve
-plt.subplot(2, 2, 3)
+ax3 = fig.add_subplot(2, 2, 3)
 precision, recall, _ = precision_recall_curve(y_test, y_proba_final)
 plt.plot(recall, precision)
 plt.xlabel('Recall')
@@ -512,7 +533,7 @@ plt.title('Precision-Recall Curve')
 
 # Feature Importance (if available)
 if hasattr(best_model.named_steps['classifier'], 'feature_importances_'):
-    plt.subplot(2, 2, 4)
+    ax4 = fig.add_subplot(2, 2, 4)
     ohe_columns = list(best_model.named_steps['preprocessor']
                       .named_transformers_['cat']
                       .get_feature_names_out(cat_cols))
@@ -529,7 +550,8 @@ if hasattr(best_model.named_steps['classifier'], 'feature_importances_'):
 
 plt.tight_layout()
 plt.savefig('model/evaluation_metrics.png')
-print("\n📈 Saved evaluation plots to 'model/evaluation_metrics.png'")
+print("\n[SAVED] Saved evaluation plots to 'model/evaluation_metrics.png'")
+plt.close()
 
 # ==============================================
 # 7. MODEL PERSISTENCE

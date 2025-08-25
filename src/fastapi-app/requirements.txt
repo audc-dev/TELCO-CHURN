@@ -1,0 +1,34 @@
+# requirements-fastapi.txt
+#
+# FastAPI service specific requirements
+# Optimized for high-performance API serving
+
+# Core FastAPI and async support
+fastapi==0.115.0             # FastAPI framework
+uvicorn[standard]==0.30.6    # ASGI server
+pydantic==2.8.2              # Data validation
+python-multipart==0.0.6      # File upload support
+pydantic-core==2.20.1
+
+# Machine learning and data processing
+pandas==2.1.4
+numpy==1.26.4
+scikit-learn==1.7.0
+joblib==1.3.2
+
+# Monitoring and observability
+evidently==0.4.20             # ML monitoring
+prometheus-client==0.22.1     # Metrics collection
+shap==0.45.0
+
+# MLflow integration
+mlflow==3.3.1 
+boto3==1.28.25               # AWS S3 support
+
+# Database connectivity (if needed)
+asyncpg==0.28.0              # Async PostgreSQL
+sqlalchemy==2.0.19           # ORM
+
+# Performance optimization
+orjson==3.9.5                # Fast JSON serialization
+python-jose[cryptography]==3.3.0  # JWT handling

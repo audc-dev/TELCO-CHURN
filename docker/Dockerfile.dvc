@@ -1,0 +1,23 @@
+# docker/Dockerfile.dvc
+FROM python:3.12
+
+WORKDIR /app
+
+# Install system dependencies including git for DVC
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install DVC and ML packages
+RUN pip install dvc==3.61.0 pandas scikit-learn joblib mlflow
+
+# Create directories
+RUN mkdir -p /app/data /app/model /app/scripts /app/reports
+
+# Default command
+CMD ["dvc", "repro"]

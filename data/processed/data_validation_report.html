@@ -1,0 +1,64 @@
+
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Data Validation Report</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; }
+                .header { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+                .section { margin: 20px 0; }
+                .pass { color: #27ae60; font-weight: bold; }
+                .fail { color: #e74c3c; font-weight: bold; }
+                .metrics { background-color: #f8f9fa; padding: 15px; border-radius: 5px; }
+                table { border-collapse: collapse; width: 100%; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+            </style>
+        </head>
+        <body>
+            <h1 class="header">Data Validation Report</h1>
+            
+            <div class="section">
+                <h2>Validation Summary</h2>
+                <p>Overall Status: <span class="fail">
+                    FAILED</span></p>
+                
+                <table>
+                    <tr><th>Check</th><th>Status</th><th>Details</th></tr>
+                    <tr>
+                        <td>Minimum Samples</td>
+                        <td class="pass">
+                            PASS</td>
+                        <td>Required: 1000, 
+                            Actual: 14084</td>
+                    </tr>
+                    <tr>
+                        <td>Missing Value Percentage</td>
+                        <td class="pass">
+                            PASS</td>
+                        <td>Max Allowed: 0.3, 
+                            Actual: 0.0421</td>
+                    </tr>
+                    <tr>
+                        <td>Required Columns</td>
+                        <td class="fail">
+                            FAIL</td>
+                        <td>Missing: ['Monthly Charges', 'Tenure Months']</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h2>Data Processing Summary</h2>
+                <div class="metrics">
+                    <p><strong>Original Shape:</strong> 14084 rows × 52 columns</p>
+                    <p><strong>Processed Shape:</strong> 14084 rows × 22 columns</p>
+                    <p><strong>Columns Dropped:</strong> 30</p>
+                    <p><strong>Missing Values Filled:</strong> 30810</p>
+                    <p><strong>Numeric Columns:</strong> 20</p>
+                    <p><strong>Categorical Columns:</strong> 2</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        

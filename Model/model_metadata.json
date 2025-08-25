@@ -24,14 +24,16 @@
         "Unlimited Data"
     ],
     "metrics": {
-        "accuracy": 0.8178913738019169,
-        "precision": 0.7033747779751333,
-        "recall": 0.5336927223719676,
-        "f1": 0.6068965517241379,
-        "roc_auc": 0.8337946935991947,
+        "accuracy": 0.8409655662051828,
+        "precision": 0.9152542372881356,
+        "recall": 0.4366576819407008,
+        "f1": 0.5912408759124088,
+        "roc_auc": 0.8323109148183029,
+        "PR AUC": 0.726009987991657,
+        "Balanced_Accuracy": 0.7110999253076998,
         "best_params": {
             "classifier__max_depth": 10,
-            "classifier__min_samples_split": 5,
+            "classifier__min_samples_split": 2,
             "classifier__n_estimators": 200
         }
     },
@@ -42,6 +44,7 @@
             "Avg Monthly Long Distance Charges",
             "CLTV",
             "Internet Service",
+            "Internet Type",
             "Monthly Charge",
             "Multiple Lines",
             "Phone Service",
@@ -58,20 +61,13 @@
             "Unlimited Data"
         ],
         "categorical_columns": [
-            "Contract",
-            "Internet Type"
+            "Contract"
         ],
         "expected_categories": {
             "Contract": [
                 "Two Year",
                 "Month-to-Month",
                 "One Year"
-            ],
-            "Internet Type": [
-                "Fiber Optic",
-                NaN,
-                "DSL",
-                "Cable"
             ]
         }
     }

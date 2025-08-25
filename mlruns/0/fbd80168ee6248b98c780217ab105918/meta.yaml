@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/caudi/Documents/BdeB/A61/PROJET_SYNTHESE_IA/venv/TELCO-CHURN/mlruns/0/fbd80168ee6248b98c780217ab105918/artifacts
+end_time: 1756124126830
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: fbd80168ee6248b98c780217ab105918
+run_name: Model_SVC
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756124044842
+status: 3
+tags: []
+user_id: caudi

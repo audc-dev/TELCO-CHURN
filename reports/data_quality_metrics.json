@@ -1,0 +1,266 @@
+{
+  "original_shape": [
+    14084,
+    52
+  ],
+  "processed_shape": [
+    14084,
+    22
+  ],
+  "columns_dropped": 30,
+  "missing_values_original": 30810,
+  "missing_values_processed": 0,
+  "missing_values_filled": 30810,
+  "data_types": {
+    "Age": "int64",
+    "Avg Monthly GB Download": "float64",
+    "Avg Monthly Long Distance Charges": "float64",
+    "CLTV": "int64",
+    "Contract": "object",
+    "Internet Service": "int64",
+    "Internet Type": "object",
+    "Monthly Charge": "float64",
+    "Multiple Lines": "int64",
+    "Phone Service": "int64",
+    "Population": "int64",
+    "Satisfaction Score": "int64",
+    "Streaming Movies": "int64",
+    "Streaming Music": "int64",
+    "Streaming TV": "int64",
+    "Tenure in Months": "int64",
+    "Total Charges": "float64",
+    "Total Extra Data Charges": "float64",
+    "Total Long Distance Charges": "float64",
+    "Total Revenue": "float64",
+    "Unlimited Data": "int64",
+    "Churn": "int64"
+  },
+  "numeric_columns": [
+    "Age",
+    "Avg Monthly GB Download",
+    "Avg Monthly Long Distance Charges",
+    "CLTV",
+    "Internet Service",
+    "Monthly Charge",
+    "Multiple Lines",
+    "Phone Service",
+    "Population",
+    "Satisfaction Score",
+    "Streaming Movies",
+    "Streaming Music",
+    "Streaming TV",
+    "Tenure in Months",
+    "Total Charges",
+    "Total Extra Data Charges",
+    "Total Long Distance Charges",
+    "Total Revenue",
+    "Unlimited Data",
+    "Churn"
+  ],
+  "categorical_columns": [
+    "Contract",
+    "Internet Type"
+  ],
+  "numeric_statistics": {
+    "Age": {
+      "count": 14084.0,
+      "mean": 46.45058222095995,
+      "std": 16.371739143786414,
+      "min": 18.0,
+      "25%": 34.0,
+      "50%": 46.0,
+      "75%": 59.0,
+      "max": 81.0
+    },
+    "Avg Monthly GB Download": {
+      "count": 14084.0,
+      "mean": 21.28272436807725,
+      "std": 19.08221446033499,
+      "min": 0.0,
+      "25%": 5.0,
+      "50%": 18.43,
+      "75%": 30.0,
+      "max": 94.34
+    },
+    "Avg Monthly Long Distance Charges": {
+      "count": 14084.0,
+      "mean": 20.376347628514626,
+      "std": 16.321263655113345,
+      "min": 0.0,
+      "25%": 3.9775,
+      "50%": 19.105,
+      "75%": 34.6325,
+      "max": 50.0
+    },
+    "CLTV": {
+      "count": 14084.0,
+      "mean": 4331.416145981255,
+      "std": 1242.1596613545926,
+      "min": 2003.0,
+      "25%": 3281.0,
+      "50%": 4419.0,
+      "75%": 5381.0,
+      "max": 6500.0
+    },
+    "Internet Service": {
+      "count": 14084.0,
+      "mean": 0.6418631070718546,
+      "std": 0.47946968800273926,
+      "min": 0.0,
+      "25%": 0.0,
+      "50%": 1.0,
+      "75%": 1.0,
+      "max": 1.0
+    },
+    "Monthly Charge": {
+      "count": 14084.0,
+      "mean": 65.21908761715422,
+      "std": 29.58353924572714,
+      "min": 10.0,
+      "25%": 43.3275,
+      "50%": 68.11500000000001,
+      "75%": 88.05,
+      "max": 164.61
+    },
+    "Multiple Lines": {
+      "count": 14084.0,
+      "mean": 0.33179494461800624,
+      "std": 0.4708745079420233,
+      "min": 0.0,
+      "25%": 0.0,
+      "50%": 0.0,
+      "75%": 1.0,
+      "max": 1.0
+    },
+    "Phone Service": {
+      "count": 14084.0,
+      "mean": 0.6982391366089179,
+      "std": 0.45903834927573783,
+      "min": 0.0,
+      "25%": 0.0,
+      "50%": 1.0,
+      "75%": 1.0,
+      "max": 1.0
+    },
+    "Population": {
+      "count": 14084.0,
+      "mean": 36307.62148537347,
+      "std": 29119.432064305784,
+      "min": 11.0,
+      "25%": 9937.0,
+      "50%": 31301.0,
+      "75%": 57146.0,
+      "max": 105285.0
+    },
+    "Satisfaction Score": {
+      "count": 14084.0,
+      "mean": 3.1195683044589604,
+      "std": 1.3135404644778605,
+      "min": 1.0,
+      "25%": 2.0,
+      "50%": 3.0,
+      "75%": 4.0,
+      "max": 5.0
+    },
+    "Streaming Movies": {
+      "count": 14084.0,
+      "mean": 0.3149673388241977,
+      "std": 0.4645193592353737,
+      "min": 0.0,
+      "25%": 0.0,
+      "50%": 0.0,
+      "75%": 1.0,
+      "max": 1.0
+    },
+    "Streaming Music": {
+      "count": 14084.0,
+      "mean": 0.29948878159613745,
+      "std": 0.4580503775252516,
+      "min": 0.0,
+      "25%": 0.0,
+      "50%": 0.0,
+      "75%": 1.0,
+      "max": 1.0
+    },
+    "Streaming TV": {
+      "count": 14084.0,
+      "mean": 0.3171684180630503,
+      "std": 0.4653901491731519,
+      "min": 0.0,
+      "25%": 0.0,
+      "50%": 0.0,
+      "75%": 1.0,
+      "max": 1.0
+    },
+    "Tenure in Months": {
+      "count": 14084.0,
+      "mean": 32.42587333143993,
+      "std": 23.5410923709804,
+      "min": 1.0,
+      "25%": 11.0,
+      "50%": 30.0,
+      "75%": 51.0,
+      "max": 116.0
+    },
+    "Total Charges": {
+      "count": 14084.0,
+      "mean": 2211.5044880715704,
+      "std": 2092.995778715652,
+      "min": 9.06,
+      "25%": 490.6075,
+      "50%": 1580.5549999999998,
+      "75%": 3362.7875,
+      "max": 14166.84
+    },
+    "Total Extra Data Charges": {
+      "count": 14084.0,
+      "mean": 8.329705339392218,
+      "std": 24.390581465490943,
+      "min": 0.0,
+      "25%": 0.0,
+      "50%": 0.0,
+      "75%": 0.0,
+      "max": 150.0
+    },
+    "Total Long Distance Charges": {
+      "count": 14084.0,
+      "mean": 664.5841919909117,
+      "std": 816.7036233272999,
+      "min": 0.0,
+      "25%": 22.9575,
+      "50%": 318.15,
+      "75%": 1051.9875000000002,
+      "max": 5080.18
+    },
+    "Total Revenue": {
+      "count": 14084.0,
+      "mean": 2882.111660749787,
+      "std": 2614.3273217351652,
+      "min": -23.11,
+      "25%": 748.9725,
+      "50%": 2206.615,
+      "75%": 4302.6,
+      "max": 17912.56
+    },
+    "Unlimited Data": {
+      "count": 14084.0,
+      "mean": 0.46123260437375746,
+      "std": 0.4985125216258007,
+      "min": 0.0,
+      "25%": 0.0,
+      "50%": 0.0,
+      "75%": 1.0,
+      "max": 1.0
+    },
+    "Churn": {
+      "count": 14084.0,
+      "mean": 0.2634194831013916,
+      "std": 0.4405036170157732,
+      "min": 0.0,
+      "25%": 0.0,
+      "50%": 0.0,
+      "75%": 1.0,
+      "max": 1.0
+    }
+  }
+}

@@ -1,0 +1,27 @@
+# monitoring/prometheus.yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'fastapi'
+    static_configs:
+      - targets: ['fastapi:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'flask'
+    static_configs:
+      - targets: ['flask:5000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'streamlit'
+    static_configs:
+      - targets: ['streamlit:8501']
+    metrics_path: '/_stcore/metrics'
+    scrape_interval: 30s

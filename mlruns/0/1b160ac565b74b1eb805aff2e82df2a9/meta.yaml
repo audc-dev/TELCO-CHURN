@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/caudi/Documents/BdeB/A61/PROJET_SYNTHESE_IA/venv/TELCO-CHURN/mlruns/0/1b160ac565b74b1eb805aff2e82df2a9/artifacts
+end_time: 1756124011368
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 1b160ac565b74b1eb805aff2e82df2a9
+run_name: Model_Logistic Regression
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756123985396
+status: 3
+tags: []
+user_id: caudi

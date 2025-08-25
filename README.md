@@ -10,12 +10,20 @@ telco-churn-mlops/
 ├── src/
 │   ├── fastapi_app/
 │   │   ├── main.py                      # FastAPI application
+│   │   ├── requirements.txt
+│   │   └── __init__.py
+│   ├── flask-app/
+│   │   ├── app.py                       # Flask application
+│   │   ├── README.md
+│   │   ├── requirements.txt
 │   │   └── __init__.py
 │   ├── streamlit_app/
 │   │   ├── dashboard.py                 # Streamlit dashboard
+│   │   ├── requirements.txt
 │   │   └── __init__.py
 │   └── monitoring/
 │       ├── monitoring_service.py        # Continuous monitoring
+│   │   ├── requirements.txt
 │       └── __init__.py
 ├── templates/                           # Flask HTML templates
 │   ├── base.html
@@ -37,6 +45,8 @@ telco-churn-mlops/
 │   ├── Dockerfile.fastapi-app
 │   ├── Dockerfile.streamlit-app
 │   ├── Dockerfile.mlflow
+│   ├── Dockerfile.training
+│   ├── Dockerfile.dvc
 │   └── Dockerfile.monitoring
 ├── k8s/                                # Kubernetes manifests
 │   ├── namespace.yaml
@@ -84,7 +94,6 @@ telco-churn-mlops/
 │   ├── unit/
 │   ├── integration/
 │   └── performance/
-├── app.py                              # Main Flask application
 ├── train.py                            # Original training script
 ├── train_with_mlflow.py                # MLflow enhanced training
 ├── dvc.yaml                            # DVC pipeline configuration
@@ -239,6 +248,10 @@ pip install -r requirements-dev.txt
 ```bash
 # Add your data to DVC tracking
 dvc add data/raw/telco_churn_raw.csv
+
+# For Google Cloud Storage
+dvc remote add -d myremote gs://your-bucket-name/data
+
 dvc push
 
 # Create reference dataset for monitoring
@@ -248,9 +261,6 @@ python scripts/data_preparation.py
 ### **4. MLflow Setup**
 
 ```bash
-# Start local MLflow server
-mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./artifacts --host 0.0.0.0
-
 # Or use Docker Compose
 docker-compose up mlflow
 ```
@@ -259,7 +269,7 @@ docker-compose up mlflow
 
 ```bash
 # Train initial model with MLflow tracking
-python train_with_mlflow.py
+python train.py
 
 # Register model in MLflow Registry
 python scripts/register_model.py

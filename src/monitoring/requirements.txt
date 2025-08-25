@@ -1,0 +1,29 @@
+# requirements-monitoring.txt
+#
+# Monitoring service specific requirements
+# For dedicated monitoring container
+
+# Monitoring frameworks
+evidently==0.4.20             # ML monitoring
+mlflow==3.3.1                 # Experiment tracking
+
+# Data processing
+pandas==2.1.4
+numpy==1.26.4
+
+# Scheduling and automation
+schedule==1.2.0              # Job scheduling
+celery==5.5.3                # Distributed task queue
+
+# Alerting
+slack-sdk==3.22.0            # Slack notifications
+twilio==8.5.0                # SMS alerts
+sendgrid==6.10.0             # Email notifications
+
+# Metrics collection
+prometheus-client==0.22.1    # Prometheus metrics
+grafana-api==1.0.3           # Grafana integration
+
+# File handling
+watchdog==5.0.3              # File system monitoring
+boto3==1.28.25               # AWS S3 integration
